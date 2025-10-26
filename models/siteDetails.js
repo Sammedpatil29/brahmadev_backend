@@ -57,6 +57,14 @@ export const SiteDetail = sequelize.define('SiteDetail', {
     type: DataTypes.STRING,
     allowNull: true
   },
+  locationImage: {
+  type: DataTypes.JSONB,
+  allowNull: true
+},
+  selfie: {
+  type: DataTypes.JSONB,
+  allowNull: true
+},
   userId: {
     type: DataTypes.INTEGER,
     allowNull: false,
