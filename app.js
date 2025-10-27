@@ -153,6 +153,35 @@ app.post('/site-details', async (req, res) => {
     console.error('❌ Error saving site details:', error);
     res.status(500).json({ error: 'Failed to save site details' });
   }
+}); 
+
+app.post('/visits-by-token', async (req, res) => {
+  const { token } = req.body;
+
+  if (!token) {
+    return res.status(400).json({ error: 'Token is required' });
+  }
+
+  try {
+    // Verify the token (throws if invalid)
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    // You can now safely use decoded info (e.g., user id)
+    console.log('Decoded token:', decoded);
+
+   const user_visits = await SiteDetail.findAll({
+    where: {
+      userId: decoded.id
+    }
+   })
+
+    // Example response
+    return res.json({ user_visits });
+
+  } catch (err) {
+    console.error('Failed to retrive data', err.message);
+    return res.status(401).json({ error: 'No data' });
+  }
 });
 
 // Start server
