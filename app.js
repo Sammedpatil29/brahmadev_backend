@@ -6,9 +6,19 @@ import { sequelize } from './db.js';
 import { User } from './models/user.js';
 import { SiteDetail } from './models/siteDetails.js';
 import jwt from 'jsonwebtoken';
+import admin from 'firebase-admin';
+import fs from 'fs';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Initialize Firebase Admin
+admin.initializeApp({
+  credential: admin.credential.cert('./oneapp-74b5a-firebase-adminsdk-fbsvc-9ed8e4c30d.json'),
+  storageBucket: process.env.FIREBASE_BUCKET,
+});
+
+const bucket = admin.storage().bucket();
 
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
@@ -101,7 +111,7 @@ app.post('/site-details', async (req, res) => {
     
   try {
     // Extract site data (everything except token)
-    const {
+    let {
         token,
       ownerName,
       ownerContact,
@@ -126,6 +136,54 @@ app.post('/site-details', async (req, res) => {
     if (!ownerName || !ownerContact) {
       return res.status(400).json({ error: 'Owner name and contact are required' });
     }
+
+     const uploadedUrls = [];
+
+    // Loop through each base64 DataURL
+    for (const image of locationImage) {
+      if (!image) continue;
+
+      // Remove DataURL prefix
+      const base64EncodedImageString = image.replace(/^data:image\/\w+;base64,/, '');
+      const buffer = Buffer.from(base64EncodedImageString, 'base64');
+
+      // Create unique file name
+      const fileName = `uploads/${Date.now()}_${Math.floor(Math.random() * 10000)}.jpg`;
+      const file = bucket.file(fileName);
+
+      // Upload to Firebase Storage
+      await file.save(buffer, {
+        metadata: { contentType: 'image/jpeg' },
+        public: true, // Make publicly accessible
+        validation: 'md5',
+      });
+
+      // Construct public URL
+      const publicUrl = `https://firebasestorage.googleapis.com/v0/b/${process.env.FIREBASE_BUCKET}/o/${encodeURIComponent(fileName)}?alt=media`;
+
+      uploadedUrls.push(publicUrl);
+    }
+
+    locationImage = uploadedUrls
+
+    // Remove "data:image/jpeg;base64," from DataURL
+    const base64EncodedImageString = selfie.replace(/^data:image\/\w+;base64,/, '');
+    const buffer = Buffer.from(base64EncodedImageString, 'base64');
+
+    // Create unique file name
+    const fileName = `uploads/selfie${Date.now()}.jpg`;
+    const file = bucket.file(fileName);
+
+    // Upload to Firebase Storage
+    await file.save(buffer, {
+      metadata: { contentType: 'image/jpeg' },
+      public: true, // makes file accessible via public URL
+      validation: 'md5',
+    });
+
+    // Construct public URL
+    const publicUrl = `https://firebasestorage.googleapis.com/v0/b/${process.env.FIREBASE_BUCKET}/o/${encodeURIComponent(fileName)}?alt=media`;
+    selfie = publicUrl
 
     // Create a new site record linked to this user
     const site = await SiteDetail.create({
@@ -181,6 +239,41 @@ app.post('/visits-by-token', async (req, res) => {
   } catch (err) {
     console.error('Failed to retrive data', err.message);
     return res.status(401).json({ error: 'No data' });
+  }
+});
+
+// POST /upload — handle dataURL from frontend
+app.post('/upload', async (req, res) => {
+  try {
+    const { image } = req.body;
+    if (!image) {
+      return res.status(400).json({ error: 'No image data provided' });
+    }
+
+    // Remove "data:image/jpeg;base64," from DataURL
+    const base64EncodedImageString = image.replace(/^data:image\/\w+;base64,/, '');
+    const buffer = Buffer.from(base64EncodedImageString, 'base64');
+
+    // Create unique file name
+    const fileName = `uploads/${Date.now()}.jpg`;
+    const file = bucket.file(fileName);
+
+    // Upload to Firebase Storage
+    await file.save(buffer, {
+      metadata: { contentType: 'image/jpeg' },
+      public: true, // makes file accessible via public URL
+      validation: 'md5',
+    });
+
+    // Construct public URL
+    const publicUrl = `https://firebasestorage.googleapis.com/v0/b/${process.env.FIREBASE_BUCKET}/o/${encodeURIComponent(fileName)}?alt=media`;
+
+    console.log('✅ Image uploaded to Firebase:', publicUrl);
+
+    res.json({ url: publicUrl });
+  } catch (err) {
+    console.error('❌ Upload error:', err);
+    res.status(500).json({ error: 'Failed to upload image' });
   }
 });
 
