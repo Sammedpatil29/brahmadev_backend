@@ -254,6 +254,31 @@ app.post('/visits-by-token', async (req, res) => {
   }
 });
 
+app.get('/all-visits', async (req, res) => {
+  // const { token } = req.body;
+
+  // if (!token) {
+  //   return res.status(400).json({ error: 'Token is required' });
+  // }
+
+  try {
+    // Verify the token (throws if invalid)
+    // const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    // You can now safely use decoded info (e.g., user id)
+    // console.log('Decoded token:', decoded);
+
+   const visits = await SiteDetail.findAll();
+
+    // Example response
+    return res.json({ visits });
+
+  } catch (err) {
+    console.error('Failed to retrive data', err.message);
+    return res.status(401).json({ error: 'No data' });
+  }
+});
+
 // POST /upload — handle dataURL from frontend
 app.post('/upload', async (req, res) => {
   try {
