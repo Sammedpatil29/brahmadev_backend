@@ -316,32 +316,13 @@ app.post('/upload', async (req, res) => {
   }
 });
 
-app.get('/webhook', (req, res) => {
-  const VERIFY_TOKEN = process.env.FB_VERIFY_TOKEN;
-  const mode = req.query['hub.mode'];
-  const token = req.query['hub.verify_token'];
-  const challenge = req.query['hub.challenge'];
+app.post('/meta-leads', (req, res) => {
+  const lead = req.body;
+  console.log('Received Lead:', lead);
 
-  if (mode === 'subscribe' && token === VERIFY_TOKEN) {
-    res.status(200).send(challenge);
-  } else {
-    res.sendStatus(403);
-  }
-});
+  // Save 'lead' to your Database (MongoDB/PostgreSQL) here
 
-app.post('/webhook', async (req, res) => {
-  const entry = req.body.entry[0];
-  const changes = entry.changes[0];
-  
-  if (changes.field === 'leadgen') {
-    const leadId = changes.value.leadgen_id;
-    // Call Meta Graph API to get full details
-    const leadDetails = await fetchLeadDetails(leadId);
-    
-    // Save to your database and notify Ionic app (e.g., via Socket.io or Push)
-    saveLeadToDb(leadDetails);
-  }
-  res.sendStatus(200); // Always respond 200 to acknowledge receipt
+  res.status(200).send('Lead Received');
 });
 
 // Start server
