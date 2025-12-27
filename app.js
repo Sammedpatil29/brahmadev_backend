@@ -9,7 +9,7 @@ import jwt from 'jsonwebtoken';
 import admin from 'firebase-admin';
 import fs from 'fs';
 import { env } from 'process';
-
+import { Lead } from './models/lead.js';
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -316,13 +316,29 @@ app.post('/upload', async (req, res) => {
   }
 });
 
-app.post('/meta-leads', (req, res) => {
-  const lead = req.body;
-  console.log('Received Lead:', lead);
+app.post('/meta-leads', async (req, res) => {
+  try {
+    const leadData = req.body;
+    console.log('Received Lead:', leadData);
 
-  // Save 'lead' to your Database (MongoDB/PostgreSQL) here
+    // Save the lead directly using Sequelize's create method
+    const newLead = await Lead.create({
+      name: leadData.name,
+      contact: leadData.contact,
+      city: leadData.city,
+      time: leadData.time,
+      platform: leadData.platform
+    });
 
-  res.status(200).send('Lead Received');
+    // Respond quickly with a 2xx status code as best practice for webhooks
+    res.status(201).json({
+      message: 'Lead saved successfully',
+      data: newLead
+    });
+  } catch (error) {
+    console.error('Error saving Meta lead:', error);
+    res.status(500).send('Internal Server Error');
+  }
 });
 
 // Start server
