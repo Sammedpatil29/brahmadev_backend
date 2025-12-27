@@ -8,6 +8,7 @@ import { SiteDetail } from './models/siteDetails.js';
 import jwt from 'jsonwebtoken';
 import admin from 'firebase-admin';
 import fs from 'fs';
+import { env } from 'process';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -316,7 +317,7 @@ app.post('/upload', async (req, res) => {
 });
 
 app.get('/webhook', (req, res) => {
-  const VERIFY_TOKEN = 'your_custom_verify_token';
+  const VERIFY_TOKEN = process.env.FB_VERIFY_TOKEN;
   const mode = req.query['hub.mode'];
   const token = req.query['hub.verify_token'];
   const challenge = req.query['hub.challenge'];
