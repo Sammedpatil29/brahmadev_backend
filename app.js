@@ -357,7 +357,7 @@ app.get('/leads', async (req, res) => {
   }
 });
 
-app.patch('/api/leads/:id', async (req, res) => {
+app.patch('/leads/:id', async (req, res) => {
   const { id } = req.params;
   const { response, newComment, city } = req.body;
 
@@ -368,34 +368,58 @@ app.patch('/api/leads/:id', async (req, res) => {
       return res.status(404).json({ error: 'Lead not found' });
     }
 
-    // 1. Prepare the comment entry if text is provided
-    let updatedComments = lead.comment || [];
-    if (newComment || response || city) {
-      const commentEntry = {
-        text: newComment || `Updated: Status to "${response || lead.response}", City to "${city || lead.city}"`,
-        date: new Date(),
-        author: 'Admin'
-      };
-      updatedComments = [...updatedComments, commentEntry];
+    // Initialize comments array (handles null cases)
+    let updatedComments = Array.isArray(lead.comment) ? [...lead.comment] : [];
+
+    // Case A: User specifically sent a new manual comment
+    if (newComment && newComment.trim() !== "") {
+      updatedComments.push({
+        author: 'Admin',
+        text: newComment,
+        date: new Date()
+      });
+    } 
+    // Case B: User updated Status or City but didn't write a comment
+    // We add an automatic "System" note so you have a history of the change
+    else if (response || city) {
+      const changes = [];
+      if (response && response !== lead.response) changes.push(`Status to "${response}"`);
+      if (city && city !== lead.city) changes.push(`City to "${city}"`);
+      
     }
 
-    // 2. Perform the update
-    // Only updates fields that are present in req.body
+    // Perform the update
     await lead.update({
-      response: response !== undefined ? response : lead.response,
-      city: city !== undefined ? city : lead.city,
-      comment: updatedComments
+      response: response || lead.response,
+      city: city || lead.city,
+      comment: updatedComments // Sequelize detects the new array reference
     });
 
-    res.status(200).json({
-      message: 'Lead updated successfully',
-      data: lead
-    });
+    res.status(200).json(lead);
   } catch (error) {
-    console.error('Update Error:', error);
-    res.status(500).json({ error: 'Failed to update lead' });
+    console.error('Patch Error:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
+
+// GET a single lead by ID
+app.get('/leads/:id', async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const lead = await Lead.findByPk(id);
+
+    if (!lead) {
+      return res.status(404).json({ error: 'Lead not found' });
+    }
+
+    res.status(200).json(lead);
+  } catch (error) {
+    console.error('Fetch Error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 
 // Start server
 app.listen(PORT, () => {
