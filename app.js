@@ -341,6 +341,62 @@ app.post('/meta-leads', async (req, res) => {
   }
 });
 
+app.get('/leads', async (req, res) => {
+  try {
+    const leads = await Lead.findAll({
+      // Sort by the 'time' field from Meta (or createdAt) in descending order
+      order: [['time', 'DESC']], 
+      // Optional: limit to the last 50 leads to keep the app fast
+      limit: 50 
+    });
+
+    res.status(200).json(leads);
+  } catch (error) {
+    console.error('Error fetching leads:', error);
+    res.status(500).json({ error: 'Failed to fetch leads' });
+  }
+});
+
+app.patch('/api/leads/:id', async (req, res) => {
+  const { id } = req.params;
+  const { response, newComment, city } = req.body;
+
+  try {
+    const lead = await Lead.findByPk(id);
+
+    if (!lead) {
+      return res.status(404).json({ error: 'Lead not found' });
+    }
+
+    // 1. Prepare the comment entry if text is provided
+    let updatedComments = lead.comment || [];
+    if (newComment || response || city) {
+      const commentEntry = {
+        text: newComment || `Updated: Status to "${response || lead.response}", City to "${city || lead.city}"`,
+        date: new Date(),
+        author: 'Admin'
+      };
+      updatedComments = [...updatedComments, commentEntry];
+    }
+
+    // 2. Perform the update
+    // Only updates fields that are present in req.body
+    await lead.update({
+      response: response !== undefined ? response : lead.response,
+      city: city !== undefined ? city : lead.city,
+      comment: updatedComments
+    });
+
+    res.status(200).json({
+      message: 'Lead updated successfully',
+      data: lead
+    });
+  } catch (error) {
+    console.error('Update Error:', error);
+    res.status(500).json({ error: 'Failed to update lead' });
+  }
+});
+
 // Start server
 app.listen(PORT, () => {
   console.log(`✅ Server running at http://localhost:${PORT}`);

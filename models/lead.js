@@ -24,8 +24,14 @@ export const Lead = sequelize.define('Lead', {
   },
   response: {
     type: DataTypes.STRING,
-    defaultValue: 'interested', // Default status for new leads
-  }
+    allowNull: true,
+    defaultValue: 'new', // Default status for new leads
+  },
+  comment: {
+  type: DataTypes.JSONB, // Optimized for JSON arrays and objects
+  allowNull: true,
+  defaultValue: []       // Initialize as an empty array
+}
 }, {
   tableName: 'meta_leads',
   timestamps: true, // Automatically adds createdAt and updatedAt
