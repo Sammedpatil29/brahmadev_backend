@@ -1,6 +1,6 @@
 import express from 'express';
 import cors from 'cors';
-import dotenv from 'dotenv';
+import dotenv from "dotenv";
 dotenv.config();
 import { sequelize } from './db.js';
 import { User } from './models/user.js';
@@ -13,6 +13,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Initialize Firebase Admin
+console.log("KEY:", process.env.FIREBASE_PRIVATE_KEY);
 admin.initializeApp({
   credential: admin.credential.cert({
     type: 'service_account',
@@ -312,6 +313,34 @@ app.post('/upload', async (req, res) => {
     console.error('❌ Upload error:', err);
     res.status(500).json({ error: 'Failed to upload image' });
   }
+});
+
+app.get('/webhook', (req, res) => {
+  const VERIFY_TOKEN = 'your_custom_verify_token';
+  const mode = req.query['hub.mode'];
+  const token = req.query['hub.verify_token'];
+  const challenge = req.query['hub.challenge'];
+
+  if (mode === 'subscribe' && token === VERIFY_TOKEN) {
+    res.status(200).send(challenge);
+  } else {
+    res.sendStatus(403);
+  }
+});
+
+app.post('/webhook', async (req, res) => {
+  const entry = req.body.entry[0];
+  const changes = entry.changes[0];
+  
+  if (changes.field === 'leadgen') {
+    const leadId = changes.value.leadgen_id;
+    // Call Meta Graph API to get full details
+    const leadDetails = await fetchLeadDetails(leadId);
+    
+    // Save to your database and notify Ionic app (e.g., via Socket.io or Push)
+    saveLeadToDb(leadDetails);
+  }
+  res.sendStatus(200); // Always respond 200 to acknowledge receipt
 });
 
 // Start server
