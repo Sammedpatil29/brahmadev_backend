@@ -46,14 +46,20 @@ sequelize.sync({ alter: true })
 
   const transporter = nodemailer.createTransport({
   host: 'smtp.gmail.com',
-  port: 587,
-  secure: false, // Use false for port 587
+  port: 465, // Try switching to 465 (SMTPS)
+  secure: true, // Use true for 465
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS
   },
+  // Adding a connection timeout limit so it doesn't hang forever
+  connectionTimeout: 10000, 
+  greetingTimeout: 10000,
+  socketTimeout: 10000,
   tls: {
-    rejectUnauthorized: false // Helps if the hosting environment has strict SSL rules
+    // This is crucial for cloud environments to avoid handshake failures
+    rejectUnauthorized: false,
+    servername: 'smtp.gmail.com'
   }
 });
 // ✅ Root route
