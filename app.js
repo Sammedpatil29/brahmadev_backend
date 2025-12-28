@@ -340,7 +340,7 @@ app.post('/meta-leads', async (req, res) => {
     });
 
     // 2. Define your 3 users
-    const adminEmails = ['sammed.patil29@gmail.com', 'sudarshan.b.patil108@gmail.com', 'brahmadevaconstructions@gmail.com'];
+    const adminEmails = ['democompany2025@gmail.com', 'sudarshan.b.patil108@gmail.com', 'brahmadevaconstructions@gmail.com'];
 
     const mailOptions = {
       from: `"Lead Manager" <${process.env.EMAIL_USER}>`,
