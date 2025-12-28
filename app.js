@@ -403,7 +403,7 @@ app.get('/leads', async (req, res) => {
 
 app.patch('/leads/:id', async (req, res) => {
   const { id } = req.params;
-  const { response, newComment, city } = req.body;
+  const { response, newComment, city, user } = req.body;
 
   try {
     const lead = await Lead.findByPk(id);
@@ -418,7 +418,7 @@ app.patch('/leads/:id', async (req, res) => {
     // Case A: User specifically sent a new manual comment
     if (newComment && newComment.trim() !== "") {
       updatedComments.push({
-        author: 'Admin',
+        author: user,
         text: newComment,
         date: new Date()
       });
