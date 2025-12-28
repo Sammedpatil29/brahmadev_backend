@@ -347,7 +347,6 @@ app.get('/leads', async (req, res) => {
       // Sort by the 'time' field from Meta (or createdAt) in descending order
       order: [['time', 'DESC']], 
       // Optional: limit to the last 50 leads to keep the app fast
-      limit: 50 
     });
 
     res.status(200).json(leads);
