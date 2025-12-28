@@ -10,6 +10,7 @@ import admin from 'firebase-admin';
 import fs from 'fs';
 import { env } from 'process';
 import { Lead } from './models/lead.js';
+import nodemailer from 'nodemailer';
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -43,6 +44,13 @@ sequelize.sync({ alter: true })
   .then(() => console.log('✅ Database & tables synced'))
   .catch(err => console.error('❌ Sync error:', err));
 
+  const transporter = nodemailer.createTransport({
+  service: 'gmail', 
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS // Use an App Password, not your login password
+  }
+});
 // ✅ Root route
 app.get('/', (req, res) => {
   res.send('🚀 Express + Sequelize + Neon PostgreSQL API running!');
@@ -321,20 +329,46 @@ app.post('/meta-leads', async (req, res) => {
     const leadData = req.body;
     console.log('Received Lead:', leadData);
 
-    // Save the lead directly using Sequelize's create method
+    // Save the lead directly
     const newLead = await Lead.create({
       name: leadData.name,
       contact: leadData.contact,
       city: leadData.city,
       time: leadData.time,
-      platform: leadData.platform
+      platform: leadData.platform,
+      response: 'new' // Ensuring it matches your frontend filter logic
     });
 
-    // Respond quickly with a 2xx status code as best practice for webhooks
+    // 2. Define your 3 users
+    const adminEmails = ['sammed.patil29@gmail.com', 'sudarshan.b.patil108@gmail.com', 'brahmadevaconstructions@gmail.com'];
+
+    const mailOptions = {
+      from: `"Lead Manager" <${process.env.EMAIL_USER}>`,
+      to: adminEmails.join(','), // Sends to all 3
+      subject: `New Lead: ${leadData.name} from ${leadData.city}`,
+      html: `
+        <div style="font-family: sans-serif; border: 1px solid #eee; padding: 20px;">
+          <h2 style="color: #2e7d32;">New Lead Received!</h2>
+          <p><strong>Name:</strong> ${leadData.name}</p>
+          <p><strong>Contact:</strong> ${leadData.contact}</p>
+          <p><strong>City:</strong> ${leadData.city}</p>
+          <p><strong>Platform:</strong> ${leadData.platform}</p>
+          <p><strong>Time:</strong> ${leadData.time}</p>
+          <hr>
+          <p>Please log in to the dashboard to follow up.</p>
+        </div>
+      `
+    };
+
+    // 3. Send the email (don't let email failure block the response)
+    transporter.sendMail(mailOptions).catch(err => console.error('Mail Error:', err));
+
+    // Respond quickly to Meta Webhook
     res.status(201).json({
-      message: 'Lead saved successfully',
+      message: 'Lead saved and alerts sent',
       data: newLead
     });
+
   } catch (error) {
     console.error('Error saving Meta lead:', error);
     res.status(500).send('Internal Server Error');
