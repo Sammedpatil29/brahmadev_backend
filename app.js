@@ -464,6 +464,26 @@ app.get('/leads/:id', async (req, res) => {
   }
 });
 
+app.get('/leads/count/new', async (req, res) => {
+    try {
+        // filter for leads where status is exactly "new"
+        // const count = await Lead.count({ response: 'new' });
+        const count = await Lead.count({
+      where: { response: 'new' }
+    });
+        // Respond with the count in JSON format
+        res.status(200).json({ 
+            success: true, 
+            count: count 
+        });
+    } catch (error) {
+        res.status(500).json({ 
+            success: false, 
+            message: error.message 
+        });
+    }
+});
+
 
 // Start server
 app.listen(PORT, () => {
