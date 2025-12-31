@@ -7,6 +7,7 @@ import { User } from './models/user.js';
 import { SiteDetail } from './models/siteDetails.js';
 import jwt from 'jsonwebtoken';
 import admin from 'firebase-admin';
+import Op from 'sequelize'
 import fs from 'fs';
 import { env } from 'process';
 import { Lead } from './models/lead.js';
@@ -487,10 +488,26 @@ app.get('/leads/count/new', async (req, res) => {
         const count = await Lead.count({
       where: { response: 'new' }
     });
+    const today = new Date().toISOString().split('T')[0]; 
+
+        // 3. Simple Query: Match only the Date part of the visit_schedule column
+        const todayLeads = await Lead.findAll({
+    where: sequelize.where(
+        sequelize.fn('DATE', sequelize.col('visit_schedule')), 
+        today
+    ),
+    attributes: { exclude: ['comment'] },
+    // Sort by visit_schedule from earliest to latest
+    order: [
+        ['visit_schedule', 'ASC']
+    ]
+});
         // Respond with the count in JSON format
         res.status(200).json({ 
             success: true, 
-            count: count 
+            count: count,
+            todayCount: todayLeads.length,
+            todayLeads: todayLeads 
         });
     } catch (error) {
         res.status(500).json({ 
