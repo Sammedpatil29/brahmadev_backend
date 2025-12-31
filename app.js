@@ -403,40 +403,56 @@ app.get('/leads', async (req, res) => {
 
 app.patch('/leads/:id', async (req, res) => {
   const { id } = req.params;
-  const { response, newComment, city, user } = req.body;
+  const { response, newComment, city, user, visit_schedule } = req.body;
 
   try {
     const lead = await Lead.findByPk(id);
+    if (!lead) return res.status(404).json({ error: 'Lead not found' });
 
-    if (!lead) {
-      return res.status(404).json({ error: 'Lead not found' });
+    // FIX 1: Use all lowercase strings in this array to match the .toLowerCase() check
+    const statusesToClearDate = ['not interested', 'closed', 'new', 'wrong number'];
+    
+    // FIX 2: Initialize with the new value from the payload if it exists, otherwise keep current
+    let updatedVisitSchedule = visit_schedule || lead.visit_schedule;
+    
+    // Clear date if response matches the clear list
+    if (response && statusesToClearDate.includes(response.toLowerCase())) {
+      updatedVisitSchedule = null;
     }
 
-    // Initialize comments array (handles null cases)
+    // --- Rest of your logic ---
     let updatedComments = Array.isArray(lead.comment) ? [...lead.comment] : [];
 
-    // Case A: User specifically sent a new manual comment
     if (newComment && newComment.trim() !== "") {
       updatedComments.push({
-        author: user,
+        author: user || 'User',
         text: newComment,
         date: new Date()
       });
     } 
-    // Case B: User updated Status or City but didn't write a comment
-    // We add an automatic "System" note so you have a history of the change
-    else if (response || city) {
-      const changes = [];
-      if (response && response !== lead.response) changes.push(`Status to "${response}"`);
-      if (city && city !== lead.city) changes.push(`City to "${city}"`);
-      
+
+    const changes = [];
+    if (visit_schedule) {
+      const formattedDate = new Date(visit_schedule).toLocaleString('en-IN', {
+        day: '2-digit', month: 'short', year: 'numeric',
+        hour: '2-digit', minute: '2-digit'
+      });
+      changes.push(`Call scheduled for ${formattedDate}`);
     }
 
-    // Perform the update
+    if (changes.length > 0) {
+      updatedComments.push({
+        author: 'System',
+        text: `Update: ${changes.join(', ')}`,
+        date: new Date()
+      });
+    }
+
     await lead.update({
-      response: response || lead.response,
+      response: response || lead.response, 
       city: city || lead.city,
-      comment: updatedComments // Sequelize detects the new array reference
+      visit_schedule: updatedVisitSchedule, // This will now correctly be null or the date
+      comment: updatedComments 
     });
 
     res.status(200).json(lead);

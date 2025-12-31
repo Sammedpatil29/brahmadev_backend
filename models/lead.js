@@ -31,6 +31,10 @@ export const Lead = sequelize.define('Lead', {
   type: DataTypes.JSONB, // Optimized for JSON arrays and objects
   allowNull: true,
   defaultValue: []       // Initialize as an empty array
+},
+visit_schedule: {
+  type: DataTypes.DATE, // or DataTypes.STRING depending on your preference
+  allowNull: true
 }
 }, {
   tableName: 'meta_leads',
