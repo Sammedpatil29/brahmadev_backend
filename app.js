@@ -491,13 +491,16 @@ app.get('/leads/count/new', async (req, res) => {
     const today = new Date().toISOString().split('T')[0]; 
 
         // 3. Simple Query: Match only the Date part of the visit_schedule column
-        const todayLeads = await Lead.findAll({
+        // const today = new Date().toISOString().split('T')[0]; 
+
+const todayLeads = await Lead.findAll({
     where: sequelize.where(
         sequelize.fn('DATE', sequelize.col('visit_schedule')), 
+        '<=', // This adds the "on or before" logic
         today
     ),
     attributes: { exclude: ['comment'] },
-    // Sort by visit_schedule from earliest to latest
+    // Order by date so the oldest missed visits appear at the top
     order: [
         ['visit_schedule', 'ASC']
     ]
