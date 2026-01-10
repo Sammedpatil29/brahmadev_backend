@@ -510,7 +510,8 @@ const todayLeads = await Lead.findAll({
             success: true, 
             count: count,
             todayCount: todayLeads.length,
-            todayLeads: todayLeads 
+            todayLeads: todayLeads,
+            left: 2
         });
     } catch (error) {
         res.status(500).json({ 
