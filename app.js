@@ -364,51 +364,93 @@ app.post('/upload', async (req, res) => {
 app.post('/meta-leads', async (req, res) => {
   try {
     const leadData = req.body;
-    console.log('Received Lead:', leadData);
+    console.log('🚀 Received New Lead:', leadData);
 
-    // Save the lead directly
+    // 1. Save Lead to Database
     const newLead = await Lead.create({
       name: leadData.name,
       contact: leadData.contact,
       city: leadData.city,
       time: leadData.time,
       platform: leadData.platform,
-      response: 'new' // Ensuring it matches your frontend filter logic
+      response: 'new'
     });
 
-    // 2. Define your 3 users
-    const adminEmails = ['democompany2025@gmail.com', 'sudarshan.b.patil108@gmail.com', 'brahmadevaconstructions@gmail.com'];
+    // const adminEmails = [
+    //   'democompany2025@gmail.com', 
+    //   'sudarshan.b.patil108@gmail.com', 
+    //   'brahmadevaconstructions@gmail.com'
+    // ];
 
-    const mailOptions = {
-      from: `"Lead Manager" <${process.env.EMAIL_USER}>`,
-      to: adminEmails.join(','), // Sends to all 3
-      subject: `New Lead: ${leadData.name} from ${leadData.city}`,
-      html: `
-        <div style="font-family: sans-serif; border: 1px solid #eee; padding: 20px;">
-          <h2 style="color: #2e7d32;">New Lead Received!</h2>
-          <p><strong>Name:</strong> ${leadData.name}</p>
-          <p><strong>Contact:</strong> ${leadData.contact}</p>
-          <p><strong>City:</strong> ${leadData.city}</p>
-          <p><strong>Platform:</strong> ${leadData.platform}</p>
-          <p><strong>Time:</strong> ${leadData.time}</p>
-          <hr>
-          <p>Please log in to the dashboard to follow up.</p>
-        </div>
-      `
-    };
+    // 2. Email Logic (Fires in background)
+    // const mailOptions = {
+    //   from: `"Lead Manager" <${process.env.EMAIL_USER}>`,
+    //   to: adminEmails.join(','),
+    //   subject: `New Lead: ${leadData.name} from ${leadData.city}`,
+    //   html: `<div style="padding:20px; border:1px solid #ddd;">
+    //            <h2>New Lead Alert!</h2>
+    //            <p><strong>Name:</strong> ${leadData.name}</p>
+    //            <p><strong>Contact:</strong> ${leadData.contact}</p>
+    //          </div>`
+    // };
+    // transporter.sendMail(mailOptions).catch(err => console.error('📧 Mail Error:', err));
 
-    // 3. Send the email (don't let email failure block the response)
-    transporter.sendMail(mailOptions).catch(err => console.error('Mail Error:', err));
+    // 3. FCM Notification Logic
+    // Using a separate async block so FCM issues don't block the HTTP response
+    (async () => {
+      try {
+        // Find users from DB who match the admin emails
+        const users = await User.findAll({
+          where: { email: adminEmails },
+          attributes: ['fcm_token']
+        });
 
-    // Respond quickly to Meta Webhook
+        // Filter valid tokens
+        const tokens = users.map(u => u.fcm_token).filter(t => t && t.length > 0);
+
+        if (tokens.length > 0) {
+          const message = {
+            notification: {
+              title: '🔥 New Lead Received!',
+              body: `${leadData.name} (${leadData.city}) has just registered.`
+            },
+            data: {
+              leadId: newLead.id.toString(),
+              click_action: 'FLUTTER_NOTIFICATION_CLICK' // Helpful for some device handlers
+            },
+            tokens: tokens, 
+          };
+
+          const response = await admin.messaging().sendEachForMulticast(message);
+          console.log(`📲 FCM Sent: ${response.successCount} successful, ${response.failureCount} failed.`);
+          
+          // Cleanup Logic: If tokens failed, it's usually because they are expired/invalid
+          if (response.failureCount > 0) {
+            response.responses.forEach((resp, idx) => {
+              if (!resp.success) {
+                console.log(`Removing invalid token for: ${tokens[idx]}`);
+                // Optional: User.update({ fcm_token: null }, { where: { fcm_token: tokens[idx] } });
+              }
+            });
+          }
+        } else {
+          console.log('⚠️ No FCM tokens found for these admins.');
+        }
+      } catch (fcmErr) {
+        console.error('❌ FCM Multicast Error:', fcmErr);
+      }
+    })();
+
+    // 4. Send Immediate Response to Meta/Webhook
     res.status(201).json({
-      message: 'Lead saved and alerts sent',
-      data: newLead
+      success: true,
+      message: 'Lead captured and alerts triggered',
+      leadId: newLead.id
     });
 
   } catch (error) {
-    console.error('Error saving Meta lead:', error);
-    res.status(500).send('Internal Server Error');
+    console.error('❌ Critical Error in /meta-leads:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
   }
 });
 
