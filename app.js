@@ -93,6 +93,31 @@ app.post('/users', async (req, res) => {
   }
 });
 
+app.patch('/users/fcm-token', async (req, res) => {
+  try {
+    const { id, fcm_token } = req.body;
+
+    if (!id || !fcm_token) {
+      return res.status(400).json({ error: 'ID and FCM token are required' });
+    }
+
+    // Sequelize syntax to update
+    const [updatedRows] = await User.update(
+      { fcm_token: fcm_token }, // Fields to update
+      { where: { id: id } }      // Condition
+    );
+
+    if (updatedRows === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.status(200).json({ message: 'FCM token updated successfully' });
+  } catch (error) {
+    console.error('Error updating FCM token:', error.message);
+    res.status(500).json({ error: 'Update failed' });
+  }
+});
+
 app.post('/verify-token', (req, res) => {
   const { token } = req.body;
 

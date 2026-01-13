@@ -6,6 +6,10 @@ export const User = sequelize.define('User', {
     type: DataTypes.STRING,
     allowNull: false,
   },
+  fcm_token: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
   email: {
     type: DataTypes.STRING,
     allowNull: false,
