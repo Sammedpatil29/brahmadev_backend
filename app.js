@@ -47,8 +47,8 @@ sequelize.sync({ alter: true })
 
   const transporter = nodemailer.createTransport({
   host: 'smtp.gmail.com',
-  port: 465, // Try switching to 465 (SMTPS)
-  secure: true, // Use true for 465
+  port: 587, // Try switching to 465 (SMTPS)
+  secure: false, // Use true for 465
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS
