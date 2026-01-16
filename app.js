@@ -452,6 +452,88 @@ app.post('/meta-leads', async (req, res) => {
   }
 });
 
+app.post('/custom-fcm', async (req, res) => {
+    try {
+        const { title, body } = req.body;
+
+        // 1. Validate Input
+        if (!title || !body) {
+            return res.status(400).json({ success: false, message: 'Title and Body are required.' });
+        }
+
+        // 2. Fetch all users with valid tokens
+        const users = await User.findAll({
+            where: sequelize.literal(`"fcm_token" IS NOT NULL AND "fcm_token" != ''`),
+            attributes: ['fcm_token']
+        });
+
+        // 3. Extract tokens
+        const allTokens = users.map(u => u.fcm_token);
+
+        if (allTokens.length === 0) {
+            console.log('⚠️ No FCM tokens found in database.');
+            return res.status(404).json({ success: false, message: 'No users found with valid FCM tokens.' });
+        }
+
+        // 4. Batch Processing (Firebase limit is 500 tokens per batch)
+        const batchSize = 500;
+        const batches = [];
+        
+        for (let i = 0; i < allTokens.length; i += batchSize) {
+            const batchTokens = allTokens.slice(i, i + batchSize);
+            
+            const message = {
+                notification: {
+                    title: title,
+                    body: body
+                },
+                android: {
+                    notification: {
+                        sound: 'default',
+                        priority: 'high',
+                    }
+                },
+                data: {
+                    leadId: Math.random().toString(36).substring(7), // Random ID
+                    type: 'Custom FCM'
+                },
+                tokens: batchTokens 
+            };
+
+            batches.push(admin.messaging().sendEachForMulticast(message));
+        }
+
+        // 5. Send all batches in parallel
+        const results = await Promise.all(batches);
+
+        // 6. Aggregate results
+        let successCount = 0;
+        let failureCount = 0;
+
+        results.forEach(batchResponse => {
+            successCount += batchResponse.successCount;
+            failureCount += batchResponse.failureCount;
+        });
+
+        console.log(`✅ FCM Broadcast Sent: ${successCount} success, ${failureCount} failed.`);
+
+        // 7. Send Response to Client
+        return res.json({
+            success: true,
+            message: 'Notifications sent successfully',
+            stats: {
+                total_tokens: allTokens.length,
+                success: successCount,
+                failed: failureCount
+            }
+        });
+
+    } catch (fcmErr) {
+        console.error('❌ FCM Broadcast Failed:', fcmErr);
+        return res.status(500).json({ success: false, message: 'Internal Server Error', error: fcmErr.message });
+    }
+});
+
 app.get('/leads', async (req, res) => {
   try {
     const leads = await Lead.findAll({
