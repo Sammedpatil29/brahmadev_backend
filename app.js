@@ -621,7 +621,23 @@ app.get('/leads/:id', async (req, res) => {
       return res.status(404).json({ error: 'Lead not found' });
     }
 
-    const status = ['new', 'busy', 'visit confirmed', 'not interested', 'closed', 'wrong number'];
+    const status = ['Interested', 
+  'Not Interested', 
+  'Yet To Think', 
+  'Call back Requested', 
+  'Busy', 
+  'Visit Confirmed', 
+  'Visiting Soon', 
+  'Wrong Number',
+  'Quotation Sent',
+  'Closed',
+  'new',
+'Engineer',
+'Mestri',
+'Contractor',
+'visit done',
+'order completed',
+];
     res.status(200).json({ ...lead.toJSON(), status });
   } catch (error) {
     console.error('Fetch Error:', error);
