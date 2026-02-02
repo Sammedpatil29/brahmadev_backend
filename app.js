@@ -621,7 +621,8 @@ app.get('/leads/:id', async (req, res) => {
       return res.status(404).json({ error: 'Lead not found' });
     }
 
-    res.status(200).json(lead);
+    const status = ['new', 'busy', 'visit confirmed', 'not interested', 'closed', 'wrong number'];
+    res.status(200).json({ ...lead.toJSON(), status });
   } catch (error) {
     console.error('Fetch Error:', error);
     res.status(500).json({ error: 'Internal server error' });
