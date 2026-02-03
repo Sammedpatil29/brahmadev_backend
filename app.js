@@ -7,7 +7,7 @@ import { User } from './models/user.js';
 import { SiteDetail } from './models/siteDetails.js';
 import jwt from 'jsonwebtoken';
 import admin from 'firebase-admin';
-import Op from 'sequelize'
+import  {Op}  from 'sequelize';
 import fs from 'fs';
 import { env } from 'process';
 import { Lead } from './models/lead.js';
@@ -535,8 +535,29 @@ app.post('/custom-fcm', async (req, res) => {
 });
 
 app.get('/leads', async (req, res) => {
+  console.log('leads called')
   try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) return res.status(401).json({ error: 'No token provided' });
+
+    const token = authHeader.split(' ')[1];
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET);
+    } catch (e) {
+      return res.status(401).json({ error: 'Invalid token' });
+    }
+
+    const user = await User.findByPk(decoded.id);
+    if (!user) return res.status(401).json({ error: 'User not found' });
+
+    let where = {};
+    if (user.role !== 'admin') {
+      where.access = { [Op.contains]: [user.id] };
+    }
+
     const leads = await Lead.findAll({
+      where,
       // Sort by the 'time' field from Meta (or createdAt) in descending order
       order: [['time', 'DESC']], 
       // Optional: limit to the last 50 leads to keep the app fast
@@ -551,24 +572,21 @@ app.get('/leads', async (req, res) => {
 
 app.patch('/leads/:id', async (req, res) => {
   const { id } = req.params;
-  const { response, newComment, city, user, visit_schedule } = req.body;
+  const { response, newComment, city, user, visit_schedule, access } = req.body;
 
   try {
     const lead = await Lead.findByPk(id);
     if (!lead) return res.status(404).json({ error: 'Lead not found' });
 
-    // FIX 1: Use all lowercase strings in this array to match the .toLowerCase() check
+    // 1. Date Logic
     const statusesToClearDate = ['not interested', 'closed', 'new', 'wrong number'];
-    
-    // FIX 2: Initialize with the new value from the payload if it exists, otherwise keep current
     let updatedVisitSchedule = visit_schedule || lead.visit_schedule;
     
-    // Clear date if response matches the clear list
     if (response && statusesToClearDate.includes(response.toLowerCase())) {
       updatedVisitSchedule = null;
     }
 
-    // --- Rest of your logic ---
+    // 2. Comment Logic
     let updatedComments = Array.isArray(lead.comment) ? [...lead.comment] : [];
 
     if (newComment && newComment.trim() !== "") {
@@ -596,14 +614,42 @@ app.patch('/leads/:id', async (req, res) => {
       });
     }
 
+    // 3. Access Logic (Updated to handle Array from Frontend)
+    let updatedAccess = lead.access || [];
+    
+    // If 'access' is sent in body, we overwrite the existing array.
+    // This allows both adding AND removing users (toggling) from the frontend.
+    if (access !== undefined && Array.isArray(access)) {
+        updatedAccess = access; 
+    } 
+    // Fallback: If it's a single value (older logic), convert to array
+    else if (access) {
+       const val = Number(access);
+       if(!isNaN(val)) updatedAccess = [val];
+    }
+
+    // 4. Update Lead
     await lead.update({
       response: response || lead.response, 
       city: city || lead.city,
-      visit_schedule: updatedVisitSchedule, // This will now correctly be null or the date
-      comment: updatedComments 
+      visit_schedule: updatedVisitSchedule,
+      comment: updatedComments,
+      access: updatedAccess,
     });
 
-    res.status(200).json(lead);
+    // 5. Fetch User List
+    const userList = await User.findAll({
+      where: { role: 'user' },
+      attributes: ['id', 'name']
+    });
+
+    // 6. Merge Lead data and UserList for response
+    // We convert lead to a plain object (toJSON) so we can attach userList
+    const responseData = lead.toJSON();
+    responseData.userList = userList;
+
+    res.status(200).json(responseData);
+
   } catch (error) {
     console.error('Patch Error:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -620,6 +666,11 @@ app.get('/leads/:id', async (req, res) => {
     if (!lead) {
       return res.status(404).json({ error: 'Lead not found' });
     }
+
+    const userList = await User.findAll({
+      where: { role: 'user' },
+      attributes: ['id', 'name']
+    });
 
     const status = ['Interested', 
   'Not Interested', 
@@ -638,7 +689,7 @@ app.get('/leads/:id', async (req, res) => {
 'visit done',
 'order completed',
 ];
-    res.status(200).json({ ...lead.toJSON(), status });
+    res.status(200).json({ ...lead.toJSON(), access: lead.access || [], status, userList });
   } catch (error) {
     console.error('Fetch Error:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -647,10 +698,32 @@ app.get('/leads/:id', async (req, res) => {
 
 app.get('/leads/count/new', async (req, res) => {
     try {
+        const authHeader = req.headers.authorization;
+        if (!authHeader) return res.status(401).json({ error: 'No token provided' });
+
+        const token = authHeader.split(' ')[1];
+        let decoded;
+        try {
+            decoded = jwt.verify(token, process.env.JWT_SECRET);
+        } catch (e) {
+            return res.status(401).json({ error: 'Invalid token' });
+        }
+
+        const user = await User.findByPk(decoded.id);
+        if (!user) return res.status(401).json({ error: 'User not found' });
+
+        let accessCondition = {};
+        if (user.role !== 'admin') {
+            accessCondition = { access: { [Op.contains]: [user.id] } };
+        }
+
         // filter for leads where status is exactly "new"
         // const count = await Lead.count({ response: 'new' });
         const count = await Lead.count({
-      where: { response: 'new' }
+      where: { 
+        response: 'new',
+        ...accessCondition
+      }
     });
     const today = new Date().toISOString().split('T')[0]; 
 
@@ -658,11 +731,16 @@ app.get('/leads/count/new', async (req, res) => {
         // const today = new Date().toISOString().split('T')[0]; 
 
 const todayLeads = await Lead.findAll({
-    where: sequelize.where(
-        sequelize.fn('DATE', sequelize.col('visit_schedule')), 
-        '<=', // This adds the "on or before" logic
-        today
-    ),
+    where: {
+        ...accessCondition,
+        [Op.and]: [
+            sequelize.where(
+                sequelize.fn('DATE', sequelize.col('visit_schedule')), 
+                '<=', // This adds the "on or before" logic
+                today
+            )
+        ]
+    },
     attributes: { exclude: ['comment'] },
     // Order by date so the oldest missed visits appear at the top
     order: [

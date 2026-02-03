@@ -28,14 +28,19 @@ export const Lead = sequelize.define('Lead', {
     defaultValue: 'new', // Default status for new leads
   },
   comment: {
-  type: DataTypes.JSONB, // Optimized for JSON arrays and objects
-  allowNull: true,
-  defaultValue: []       // Initialize as an empty array
-},
-visit_schedule: {
-  type: DataTypes.DATE, // or DataTypes.STRING depending on your preference
-  allowNull: true
-}
+    type: DataTypes.JSONB, // Optimized for JSON arrays and objects
+    allowNull: true,
+    defaultValue: []       // Initialize as an empty array
+  },
+  visit_schedule: {
+    type: DataTypes.DATE, // or DataTypes.STRING depending on your preference
+    allowNull: true
+  },
+  access: {
+    type: DataTypes.ARRAY(DataTypes.INTEGER), // Stores an array of User IDs
+    allowNull: true,
+    defaultValue: []
+  }
 }, {
   tableName: 'meta_leads',
   timestamps: true, // Automatically adds createdAt and updatedAt
