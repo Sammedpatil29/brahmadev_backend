@@ -405,7 +405,10 @@ app.post('/meta-leads', async (req, res) => {
     try {
       // Fetch all users who have an fcm_token (Not null and not empty)
       const users = await User.findAll({
-        where: sequelize.literal(`"fcm_token" IS NOT NULL AND "fcm_token" != ''`),
+        where: {
+          role: 'admin',
+          [Op.and]: [sequelize.literal(`"fcm_token" IS NOT NULL AND "fcm_token" != ''`)]
+        },
         attributes: ['fcm_token']
       });
 
@@ -636,6 +639,43 @@ app.patch('/leads/:id', async (req, res) => {
       comment: updatedComments,
       access: updatedAccess,
     });
+
+    if (access && updatedAccess.length > 0) {
+      try {
+        const users = await User.findAll({
+          where: {
+            id: { [Op.in]: updatedAccess },
+            [Op.and]: [sequelize.literal(`"fcm_token" IS NOT NULL AND "fcm_token" != ''`)]
+          },
+          attributes: ['fcm_token']
+        });
+
+        const tokens = users.map(u => u.fcm_token);
+
+        if (tokens.length > 0) {
+          const message = {
+            notification: {
+              title: '🔥New Lead Access Granted',
+              body: `You have been assigned to lead: ${lead.name}`
+            },
+            android: {
+              notification: {
+                sound: 'default',
+                priority: 'high',
+              }
+            },
+            data: {
+              leadId: String(lead.id),
+              type: 'LEAD_ACCESS'
+            },
+            tokens: tokens
+          };
+          await admin.messaging().sendEachForMulticast(message);
+        }
+      } catch (err) {
+        console.error('Error sending access notification:', err);
+      }
+    }
 
     // 5. Fetch User List
     const userList = await User.findAll({
