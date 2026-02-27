@@ -3,7 +3,6 @@ import cors from 'cors';
 import dotenv from "dotenv";
 dotenv.config();
 import { sequelize } from './db.js';
-import { env } from 'process';
 import userRoutes from './routes/userRoutes.js';
 import siteRoutes from './routes/siteRoutes.js';
 import leadRoutes from './routes/leadRoutes.js';
@@ -37,6 +36,9 @@ app.use('/items', itemRoutes);
 sequelize
   .sync({ alter: true })
   .then(() => {
-    app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+    app.listen(PORT, '0.0.0.0', () => console.log(`Server running on port ${PORT}`));
   })
-  .catch(err => console.log(err));
+  .catch(err => {
+    console.error('Failed to sync db:', err);
+    process.exit(1);
+  });
