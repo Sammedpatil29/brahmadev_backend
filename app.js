@@ -33,12 +33,13 @@ app.use('/', leadRoutes);
 app.use('/items', itemRoutes);
 
 // Start server
+app.listen(PORT, '0.0.0.0', () => console.log(`Server running on port ${PORT}`));
+
 sequelize
   .sync({ alter: true })
   .then(() => {
-    app.listen(PORT, '0.0.0.0', () => console.log(`Server running on port ${PORT}`));
+    console.log('✅ Database & tables synced');
   })
   .catch(err => {
     console.error('Failed to sync db:', err);
-    process.exit(1);
   });
