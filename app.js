@@ -19,9 +19,9 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // ✅ Sync models with database (creates table if not exists)
-sequelize.sync({ alter: true })
-  .then(() => console.log('✅ Database & tables synced'))
-  .catch(err => console.error('❌ Sync error:', err));
+// sequelize.sync({ alter: true })
+//   .then(() => console.log('✅ Database & tables synced'))
+//   .catch(err => console.error('❌ Sync error:', err));
 
 // ✅ Root route
 app.get('/', (req, res) => {
@@ -34,6 +34,9 @@ app.use('/', leadRoutes);
 app.use('/items', itemRoutes);
 
 // Start server
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`✅ Server running at http://localhost:${PORT}`);
-});
+sequelize
+  .sync({ alter: true })
+  .then(() => {
+    app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+  })
+  .catch(err => console.log(err));
