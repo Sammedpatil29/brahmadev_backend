@@ -7,6 +7,7 @@ import userRoutes from './routes/userRoutes.js';
 import siteRoutes from './routes/siteRoutes.js';
 import leadRoutes from './routes/leadRoutes.js';
 import itemRoutes from './routes/itemRoutes.js';
+import quotationRoutes from './routes/quotationRoutes.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -31,6 +32,7 @@ app.use('/', userRoutes);
 app.use('/', siteRoutes);
 app.use('/', leadRoutes);
 app.use('/items', itemRoutes);
+app.use('/', quotationRoutes);
 
 // Start server
 app.listen(PORT, '0.0.0.0', () => console.log(`Server running on port ${PORT}`));
