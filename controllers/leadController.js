@@ -24,18 +24,56 @@ export const createMetaLead = async (req, res) => {
     const mailOptions = {
       from: `"Lead Manager" <${process.env.EMAIL_USER}>`,
       to: adminEmails.join(','),
-      subject: `New Lead: ${leadData.name} from ${leadData.city}`,
+      subject: `🔥New Lead: ${leadData.name} from ${leadData.city}`,
       html: `
-        <div style="font-family: sans-serif; border: 1px solid #eee; padding: 20px;">
-          <h2 style="color: #2e7d32;">New Lead Received!</h2>
-          <p><strong>Name:</strong> ${leadData.name}</p>
-          <p><strong>Contact:</strong> ${leadData.contact}</p>
-          <p><strong>City:</strong> ${leadData.city}</p>
-          <p><strong>Platform:</strong> ${leadData.platform}</p>
-          <p><strong>Time:</strong> ${leadData.time}</p>
-          <hr>
-          <p>Please log in to the dashboard to follow up.</p>
-        </div>
+        <div style="font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 500px; margin: 20px auto; border: 1px solid #e0e0e0; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+  <div style="background-color: #2e7d32; padding: 20px; text-align: center;">
+    <h2 style="color: #ffffff; margin: 0; font-size: 22px; letter-spacing: 0.5px;">🚀 New Lead Received!</h2>
+  </div>
+
+  <div style="padding: 24px; background-color: #ffffff;">
+    <div style="margin-bottom: 15px;">
+      <span style="font-weight: 600; color: #555; width: 100px; display: inline-block;">👤 Name:</span>
+      <span style="color: #1a1a1a; font-size: 16px;">${leadData.name}</span>
+    </div>
+    
+    <div style="margin-bottom: 15px;">
+      <span style="font-weight: 600; color: #555; width: 100px; display: inline-block;">📞 Contact:</span>
+      <a href="tel:${leadData.contact}" style="color: #2e7d32; font-size: 16px; font-weight: 600; text-decoration: none;">${leadData.contact}</a>
+    </div>
+
+    <div style="margin-bottom: 15px;">
+      <span style="font-weight: 600; color: #555; width: 100px; display: inline-block;">📍 City:</span>
+      <span style="color: #1a1a1a; font-size: 16px;">${leadData.city}</span>
+    </div>
+
+    <div style="margin-bottom: 15px;">
+      <span style="font-weight: 600; color: #555; width: 100px; display: inline-block;">📱 Platform:</span>
+      <span style="background-color: #f0f4f0; color: #2e7d32; padding: 4px 12px; border-radius: 20px; font-size: 14px; font-weight: 600;">${leadData.platform}</span>
+    </div>
+
+    <div style="margin-bottom: 25px;">
+      <span style="font-weight: 600; color: #555; width: 100px; display: inline-block;">⏰ Time:</span>
+      <span style="color: #757575; font-size: 14px;">${leadData.time}</span>
+    </div>
+
+    <div style="text-align: center; margin-bottom: 10px;">
+      <a href="tel:${leadData.contact}" style="background-color: #2e7d32; color: #ffffff; padding: 12px 30px; border-radius: 8px; text-decoration: none; font-weight: 600; display: inline-block; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        📞 Call Lead Now
+      </a>
+    </div>
+
+    <hr style="border: 0; border-top: 1px solid #eee; margin: 25px 0;">
+
+    <p style="color: #666; font-size: 13px; line-height: 1.5; text-align: center; margin: 0;">
+      Please log in to the <strong>Admin Dashboard</strong> to update the status of this lead.
+    </p>
+  </div>
+  
+  <div style="background-color: #fafafa; padding: 15px; text-align: center; border-top: 1px solid #eee;">
+    <span style="font-size: 11px; color: #999; text-transform: uppercase; letter-spacing: 1px;">Brahmadev Constructions Internal</span>
+  </div>
+</div>
       `
     };
 
