@@ -24,7 +24,7 @@ export const createMetaLead = async (req, res) => {
     const mailOptions = {
       from: `"Lead Manager" <${process.env.EMAIL_USER}>`,
       to: adminEmails.join(','),
-      subject: `🔥New Lead: ${leadData.name} from ${leadData.city}`,
+      subject: `🔥New Lead alert`,
       html: `
         <div style="font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 500px; margin: 20px auto; border: 1px solid #e0e0e0; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
   <div style="background-color: #2e7d32; padding: 20px; text-align: center;">
