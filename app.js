@@ -1,8 +1,10 @@
 import express from 'express';
+import http from 'http';
 import cors from 'cors';
 import dotenv from "dotenv";
 dotenv.config();
 import { sequelize } from './db.js';
+import { initSocket } from './services/socketService.js';
 import userRoutes from './routes/userRoutes.js';
 import siteRoutes from './routes/siteRoutes.js';
 import leadRoutes from './routes/leadRoutes.js';
@@ -10,7 +12,11 @@ import itemRoutes from './routes/itemRoutes.js';
 import quotationRoutes from './routes/quotationRoutes.js';
 
 const app = express();
+const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
+
+// Initialize Socket.IO
+initSocket(server);
 
 const allowedOrigins = process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',').map(origin => origin.trim()) : [];
 
@@ -43,7 +49,7 @@ app.use('/items', itemRoutes);
 app.use('/', quotationRoutes);
 
 // Start server
-app.listen(PORT, '0.0.0.0', () => console.log(`Server running on port ${PORT}`));
+server.listen(PORT, '0.0.0.0', () => console.log(`Server running on port ${PORT}`));
 
 sequelize
   .sync({ alter: true })
