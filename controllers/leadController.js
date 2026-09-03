@@ -5,6 +5,7 @@ import { Op } from 'sequelize';
 import { transporter } from '../nodemailer.js';
 import admin from '../firebase.js';
 import jwt from 'jsonwebtoken';
+import { emitNewLead } from '../services/socketService.js';
 
 export const createMetaLead = async (req, res) => {
   try {
@@ -19,6 +20,13 @@ export const createMetaLead = async (req, res) => {
       platform: leadData.platform,
       response: 'new'
     });
+
+    // Broadcast new lead via Socket.IO in real-time
+    try {
+      emitNewLead(newLead.toJSON ? newLead.toJSON() : newLead);
+    } catch (socketErr) {
+      console.error('Socket emit error:', socketErr);
+    }
 
     const adminEmails = ['democompany2025@gmail.com', 'sudarshan.b.patil108@gmail.com', 'brahmadevaconstructions@gmail.com'];
     const mailOptions = {
