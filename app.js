@@ -10,6 +10,7 @@ import siteRoutes from './routes/siteRoutes.js';
 import leadRoutes from './routes/leadRoutes.js';
 import itemRoutes from './routes/itemRoutes.js';
 import quotationRoutes from './routes/quotationRoutes.js';
+import adSpendRoutes from './routes/adSpendRoutes.js';
 
 const app = express();
 const server = http.createServer(app);
@@ -50,6 +51,7 @@ app.use('/', siteRoutes);
 app.use('/', leadRoutes);
 app.use('/items', itemRoutes);
 app.use('/', quotationRoutes);
+app.use('/', adSpendRoutes);
 
 // Start server
 server.listen(PORT, '0.0.0.0', () => console.log(`Server running on port ${PORT}`));
