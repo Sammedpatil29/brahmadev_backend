@@ -4,7 +4,7 @@ This document provides details on the available API endpoints for the Brahmadeva
 
 ## Base URL
 
-All URLs are relative to the base URL of the server (e.g., `https://brahmadev-api.democompany.in.net`).
+All URLs are relative to the base URL of the server (e.g., `http://localhost:3000`).
 
 ---
 
