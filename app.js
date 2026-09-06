@@ -73,6 +73,9 @@ server.listen(PORT, '0.0.0.0', () => console.log(`Server running on port ${PORT}
 // ✅ Resilient database synchronization with safe column checks
 (async () => {
   try {
+    // 0. Flush stale PostgreSQL catalog/session caches (prevents "cache lookup failed" in pooled environments like Neon)
+    await sequelize.query('DISCARD ALL;').catch(() => {});
+
     // 1. Initial base sync (creates missing tables like Invoices without destructive alters)
     await sequelize.sync();
     console.log('✅ Base tables verified / created');
