@@ -3,6 +3,8 @@ import http from 'http';
 import cors from 'cors';
 import dotenv from "dotenv";
 dotenv.config();
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { sequelize } from './db.js';
 import { initSocket } from './services/socketService.js';
 import userRoutes from './routes/userRoutes.js';
@@ -11,6 +13,9 @@ import leadRoutes from './routes/leadRoutes.js';
 import itemRoutes from './routes/itemRoutes.js';
 import quotationRoutes from './routes/quotationRoutes.js';
 import adSpendRoutes from './routes/adSpendRoutes.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 const server = http.createServer(app);
@@ -40,6 +45,15 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 // sequelize.sync({ alter: true })
 //   .then(() => console.log('✅ Database & tables synced'))
 //   .catch(err => console.error('❌ Sync error:', err));
+
+// ✅ OTA Updates static route (serves manifests and update bundles)
+app.use('/ota', (req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  if (req.path.endsWith('.json')) {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  }
+  next();
+}, express.static(path.join(__dirname, 'public', 'ota')));
 
 // ✅ Root route
 app.get('/', (req, res) => {

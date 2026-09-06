@@ -1,0 +1,9 @@
+{
+  "version": "0.0.1",
+  "url": "https://brahmadev-api.democompany.in.net/ota/bundles/bundle-0.0.1.zip",
+  "sha256": "175a8f4176fec12ccd534732434d0bd4a7bd115e09337e3bba11a9e18ea6d8f2",
+  "size": 8200126,
+  "releaseId": "rel-0.0.1-mtpkmczq",
+  "strategy": "zip",
+  "forceImmediate": false
+}
