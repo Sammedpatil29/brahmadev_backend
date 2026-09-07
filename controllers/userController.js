@@ -1,9 +1,13 @@
 import { User } from '../models/user.js';
+import { Op } from 'sequelize';
 import jwt from 'jsonwebtoken';
 
 export const getAllUsers = async (req, res) => {
   try {
-    const users = await User.findAll();
+    const users = await User.findAll({
+      attributes: { exclude: ['password'] },
+      order: [['name', 'ASC']]
+    });
     res.json(users);
   } catch (error) {
     console.error('Error fetching users:', error.message);
@@ -13,14 +17,91 @@ export const getAllUsers = async (req, res) => {
 
 export const createUser = async (req, res) => {
   try {
-    const { name, email, phone, role, password } = req.body;
-    if (!name || !email) return res.status(400).json({ error: 'Name and email required' });
+    const { name, email, phone, role = 'user', password } = req.body;
+    if (!name || !email || !phone || !password) {
+      return res.status(400).json({ error: 'Name, email, phone, and password are required' });
+    }
+
+    // Check if email or phone already exists
+    const existingUser = await User.findOne({
+      where: {
+        [Op.or]: [{ email }, { phone }]
+      }
+    });
+    if (existingUser) {
+      const field = existingUser.email === email ? 'Email' : 'Phone number';
+      return res.status(400).json({ error: `${field} is already registered with another user` });
+    }
 
     const user = await User.create({ name, email, phone, role, password });
-    res.status(201).json(user);
+    const userSafe = user.toJSON();
+    delete userSafe.password;
+    res.status(201).json(userSafe);
   } catch (error) {
     console.error('Error creating user:', error.message);
-    res.status(500).json({ error: 'Insert failed' });
+    res.status(500).json({ error: 'Failed to create user: ' + error.message });
+  }
+};
+
+export const updateUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, email, phone, role, password } = req.body;
+
+    const user = await User.findByPk(id);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Check duplicate email or phone for other users
+    if (email || phone) {
+      const conflict = await User.findOne({
+        where: {
+          id: { [Op.ne]: id },
+          [Op.or]: [
+            ...(email ? [{ email }] : []),
+            ...(phone ? [{ phone }] : [])
+          ]
+        }
+      });
+      if (conflict) {
+        const field = conflict.email === email ? 'Email' : 'Phone number';
+        return res.status(400).json({ error: `${field} is already in use by another user` });
+      }
+    }
+
+    const updateData = {};
+    if (name) updateData.name = name;
+    if (email) updateData.email = email;
+    if (phone) updateData.phone = phone;
+    if (role) updateData.role = role;
+    if (password && password.trim() !== '') {
+      updateData.password = password.trim();
+    }
+
+    await user.update(updateData);
+    const userSafe = user.toJSON();
+    delete userSafe.password;
+    res.json(userSafe);
+  } catch (error) {
+    console.error('Error updating user:', error.message);
+    res.status(500).json({ error: 'Failed to update user: ' + error.message });
+  }
+};
+
+export const deleteUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const user = await User.findByPk(id);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    await user.destroy();
+    res.json({ message: 'User deleted successfully', id });
+  } catch (error) {
+    console.error('Error deleting user:', error.message);
+    res.status(500).json({ error: 'Failed to delete user: ' + error.message });
   }
 };
 
@@ -49,7 +130,7 @@ export const updateFcmToken = async (req, res) => {
   }
 };
 
-export const verifyToken = (req, res) => {
+export const verifyToken = async (req, res) => {
   const { token } = req.body;
 
   if (!token) {
@@ -57,8 +138,11 @@ export const verifyToken = (req, res) => {
   }
 
   try {
-    jwt.verify(token, process.env.JWT_SECRET);
-    return res.json({ valid: true });
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findByPk(decoded.id, {
+      attributes: ['id', 'name', 'email', 'phone', 'role']
+    });
+    return res.json({ valid: true, user: user ? user.toJSON() : null });
   } catch (error) {
     return res.json({ valid: false });
   }
@@ -75,9 +159,14 @@ export const login = async (req, res) => {
     const user = await User.findOne({ where: { phone, password } });
     if (!user) return res.status(401).json({ error: 'Invalid phone or password' });
 
-    const payload = { id: user.id, phone: user.phone, username: user.name };
+    const payload = { id: user.id, phone: user.phone, username: user.name, role: user.role };
     const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '10d' });
-    res.json({ message: 'Login successful', token });
+    res.json({
+      message: 'Login successful',
+      token,
+      role: user.role,
+      user: { id: user.id, name: user.name, phone: user.phone, email: user.email, role: user.role }
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Server error' });

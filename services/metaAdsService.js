@@ -419,7 +419,7 @@ export const checkMetaAdAccountStatus = async () => {
     const response = await axios.get(url, {
       params: {
         access_token: config.accessToken,
-        fields: 'id,name,account_status,currency,timezone_name,spend_cap,amount_spent'
+        fields: 'id,name,account_status,currency,timezone_name,spend_cap,amount_spent,balance,funding_source_details'
       }
     });
 
@@ -437,6 +437,36 @@ export const checkMetaAdAccountStatus = async () => {
       202: 'ANY_CLOSED'
     };
 
+    // Calculate available funds / prepaid balance
+    let availableFunds = null;
+    let balanceDisplay = null;
+
+    // 1. Check funding source details (common for Indian prepaid Meta Ad accounts with UPI/Paytm/Cards)
+    if (d.funding_source_details && d.funding_source_details.display_string) {
+      balanceDisplay = d.funding_source_details.display_string; // e.g. "Available balance (₹1,096.55 INR)"
+      const regexMatch = balanceDisplay.match(/[\d,]+(?:\.\d+)?/);
+      if (regexMatch) {
+        availableFunds = parseFloat(regexMatch[0].replace(/,/g, ''));
+      }
+    }
+
+    // 2. If spend_cap and amount_spent are present and spend_cap > 0, compute remaining headroom
+    const spendCap = d.spend_cap ? parseFloat(d.spend_cap) / 100 : 0;
+    const amountSpent = d.amount_spent ? parseFloat(d.amount_spent) / 100 : 0;
+    const remainingCap = (spendCap > 0 && spendCap >= amountSpent) ? Math.round((spendCap - amountSpent) * 100) / 100 : null;
+
+    // 3. Outstanding / Account Balance (Meta stores in cents/paise)
+    const rawBalance = d.balance ? parseFloat(d.balance) / 100 : 0;
+
+    // If availableFunds couldn't be extracted from display string, fallback to remainingCap or rawBalance
+    if (availableFunds === null) {
+      if (remainingCap !== null) {
+        availableFunds = remainingCap;
+      } else if (rawBalance > 0) {
+        availableFunds = rawBalance;
+      }
+    }
+
     return {
       connected: true,
       configured: true,
@@ -447,7 +477,12 @@ export const checkMetaAdAccountStatus = async () => {
       campaignIds: config.campaignIds,
       campaignFilter: config.campaignFilter,
       accountStatus: statusMap[d.account_status] || `STATUS_${d.account_status}`,
-      amountSpent: d.amount_spent ? parseFloat(d.amount_spent) / 100 : undefined
+      amountSpent: amountSpent,
+      spendCap: spendCap > 0 ? spendCap : null,
+      remainingCap: remainingCap,
+      availableFunds: availableFunds !== null ? Math.round(availableFunds * 100) / 100 : null,
+      fundingSourceDisplay: balanceDisplay,
+      balance: rawBalance
     };
   } catch (error) {
     return {
