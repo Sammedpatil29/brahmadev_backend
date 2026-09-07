@@ -13,6 +13,7 @@ import leadRoutes from './routes/leadRoutes.js';
 import itemRoutes from './routes/itemRoutes.js';
 import quotationRoutes from './routes/quotationRoutes.js';
 import adSpendRoutes from './routes/adSpendRoutes.js';
+import { initMetaReportCron } from './services/metaReportCronService.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -23,6 +24,9 @@ const PORT = process.env.PORT || 3000;
 
 // Initialize Socket.IO
 initSocket(server);
+
+// Initialize Meta Ads Midnight Daily & 1st of Month GST Report Cron Jobs
+initMetaReportCron();
 
 const allowedOrigins = process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',').map(origin => origin.trim()) : [];
 

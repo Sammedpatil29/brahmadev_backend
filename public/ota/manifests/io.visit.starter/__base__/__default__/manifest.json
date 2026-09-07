@@ -1,9 +1,9 @@
 {
-  "version": "0.0.4",
-  "url": "https://brahmadev-api.democompany.in.net/ota/bundles/bundle-0.0.4.zip",
-  "sha256": "0d02979aeb272e0f98a561be7a2b83db455e2b43d406c6a567d10670e22a0319",
-  "size": 8201642,
-  "releaseId": "rel-0.0.4-mtpn1dma",
+  "version": "0.0.5",
+  "url": "https://brahmadev-api.democompany.in.net/ota/bundles/bundle-0.0.5.zip",
+  "sha256": "55fa78355e3b67e988f33f780c28fd0fbb6f2d04afd963bc8597b5be773b2b97",
+  "size": 8210190,
+  "releaseId": "rel-0.0.5-mtra5iyr",
   "strategy": "zip",
   "forceImmediate": false
 }
