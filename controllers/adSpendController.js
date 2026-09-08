@@ -7,12 +7,15 @@ import { sendDailyMetaAdReport, sendMonthlyMetaGstReport } from '../services/met
 
 export const getMetaAdSpend = async (req, res) => {
   try {
-    const { date_preset, since, until, level, campaign_filter, campaign_ids } = req.query;
+    const { date_preset, since, until, from, to, startDate, endDate, level, campaign_filter, campaign_ids } = req.query;
+
+    const resolvedSince = since || from || startDate;
+    const resolvedUntil = until || to || endDate;
 
     const report = await fetchAccountAdSpend({
-      date_preset: date_preset || 'this_month',
-      since,
-      until,
+      date_preset: (resolvedSince && resolvedUntil) ? undefined : (date_preset || 'this_month'),
+      since: resolvedSince,
+      until: resolvedUntil,
       level,
       campaign_filter,
       campaign_ids
