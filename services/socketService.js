@@ -46,3 +46,16 @@ export const emitNewLead = (lead) => {
   }
 };
 
+/**
+ * Broadcast lead update (status, comments/messages, etc.) to all connected clients
+ * @param {object} data - { leadId, response, comment, newComment, updatedBy, lead }
+ */
+export const emitLeadUpdate = (data) => {
+  if (io) {
+    console.log(`📢 Broadcasting 'lead-updated' event for lead: ${data?.leadId || data?.id}`);
+    io.emit('lead-updated', data);
+  } else {
+    console.warn('⚠️ Socket.IO is not initialized yet. Cannot emit lead-updated.');
+  }
+};
+

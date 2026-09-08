@@ -5,7 +5,7 @@ import { Op } from 'sequelize';
 import { transporter } from '../nodemailer.js';
 import admin from '../firebase.js';
 import jwt from 'jsonwebtoken';
-import { emitNewLead } from '../services/socketService.js';
+import { emitNewLead, emitLeadUpdate } from '../services/socketService.js';
 
 export const createMetaLead = async (req, res) => {
   try {
@@ -267,6 +267,21 @@ export const updateLead = async (req, res) => {
     const userList = await User.findAll({ where: { role: 'user' }, attributes: ['id', 'name'] });
     const responseData = lead.toJSON();
     responseData.userList = userList;
+
+    // Broadcast lead update (status change, message/comment, schedule, access) in real-time
+    try {
+      emitLeadUpdate({
+        leadId: lead.id,
+        response: lead.response,
+        comment: lead.comment,
+        newComment: newComment || null,
+        updatedBy: user || 'User',
+        lead: responseData
+      });
+    } catch (socketErr) {
+      console.error('Socket emit error on lead update:', socketErr);
+    }
+
     res.status(200).json(responseData);
   } catch (error) {
     console.error('Patch Error:', error);
