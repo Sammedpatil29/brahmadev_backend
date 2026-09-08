@@ -281,7 +281,7 @@ export const getLeadById = async (req, res) => {
     if (!lead) return res.status(404).json({ error: 'Lead not found' });
 
     const userList = await User.findAll({ where: { role: 'user' }, attributes: ['id', 'name'] });
-    const status = ['Interested', 'Not Interested', 'Yet To Think', 'Call back Requested', 'Busy', 'Visit Confirmed', 'Visiting Soon', 'Wrong Number', 'Quotation Sent', 'Closed', 'new', 'Engineer', 'Mestri', 'Contractor', 'visit done', 'order completed'];
+    const status = ['Interested', 'Not Interested', 'Yet To Think', 'Call back Requested', 'Busy', 'Long Distance', 'Follow Up', 'Visit Confirmed', 'Visiting Soon', 'Wrong Number', 'Quotation Sent', 'Closed', 'new', 'Engineer', 'Mestri', 'Contractor', 'visit done', 'order completed'];
     res.status(200).json({ ...lead.toJSON(), access: lead.access || [], status, userList });
   } catch (error) {
     console.error('Fetch Error:', error);
